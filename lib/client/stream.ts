@@ -1,7 +1,7 @@
 import { READING_MODE_HEADER } from "../constants";
 import type { ProviderMode } from "../llm/types";
 
-const FALLBACK_MESSAGE = "해석을 불러오지 못했습니다.";
+export const FALLBACK_MESSAGE = "해석을 불러오지 못했습니다.";
 
 /**
  * 서버가 흘려보내는 텍스트를 받는 대로 onChunk에 넘긴다.

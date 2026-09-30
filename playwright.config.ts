@@ -18,7 +18,7 @@ export default defineConfig({
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
-    // 키를 비워 데모 프로바이더로 고정한다 — 테스트가 결정적으로 돌아간다.
-    env: { ANTHROPIC_API_KEY: "" },
+    // 모델 설정을 비워 데모 프로바이더로 고정한다 — .env.local에 EXAONE이 있어도 테스트가 결정적으로 돌아간다.
+    env: { ANTHROPIC_API_KEY: "", LLM_BASE_URL: "" },
   },
 });

@@ -1,9 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { getCard } from "@/lib/tarot/deck";
-import { SPREAD_LABELS, type DrawnCard } from "@/lib/tarot/draw";
+import { SPREAD_LABELS, orientationLabel, type DrawnCard } from "@/lib/tarot/draw";
 
 export function SpreadBoard({ cards }: { cards: DrawnCard[] }) {
   return (
@@ -13,12 +13,12 @@ export function SpreadBoard({ cards }: { cards: DrawnCard[] }) {
         if (!card) {
           return null;
         }
-        const orientation = drawn.reversed ? "역방향" : "정방향";
+        const orientation = orientationLabel(drawn.reversed);
 
         return (
           <li key={drawn.id} className="flex flex-col items-center gap-3">
             <div className="w-full [perspective:1200px]">
-              <motion.div
+              <m.div
                 className="relative aspect-[7/12] w-full [transform-style:preserve-3d]"
                 initial={{ rotateY: 180 }}
                 animate={{ rotateY: 0 }}
@@ -35,7 +35,7 @@ export function SpreadBoard({ cards }: { cards: DrawnCard[] }) {
                   />
                 </div>
                 <div className="card-back card-face absolute inset-0 rounded-sm [transform:rotateY(180deg)]" />
-              </motion.div>
+              </m.div>
             </div>
 
             <div className="text-center">

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DECK, MINOR_SUITS, getCard } from "./deck";
+import { DECK, MINOR_SUITS, getCard, requireCard } from "./deck";
 
 describe("DECK", () => {
   it("contains exactly 78 cards", () => {
@@ -57,5 +57,15 @@ describe("getCard", () => {
 
   it("returns undefined for an unknown id", () => {
     expect(getCard("major-99")).toBeUndefined();
+  });
+});
+
+describe("requireCard", () => {
+  it("returns the card for a known id", () => {
+    expect(requireCard("major-00").nameEn).toBe("The Fool");
+  });
+
+  it("throws for an id that is not in the deck", () => {
+    expect(() => requireCard("major-99")).toThrow("major-99");
   });
 });

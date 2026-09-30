@@ -1,9 +1,7 @@
 "use client";
 
-import { motion } from "motion/react";
-
-/** 고른 순서가 그대로 스프레드 자리가 된다. */
-const POSITION_BADGES = ["과거", "현재", "미래"];
+import { m } from "motion/react";
+import { SPREAD_LABELS, SPREAD_POSITIONS } from "@/lib/tarot/draw";
 
 interface CardGridProps {
   total: number;
@@ -20,7 +18,7 @@ export function CardGrid({ total, selected, onSelect, locked }: CardGridProps) {
         const isSelected = order >= 0;
         return (
           <li key={index} className="relative">
-            <motion.button
+            <m.button
               type="button"
               aria-label={`카드 ${index + 1}`}
               aria-pressed={isSelected}
@@ -44,7 +42,8 @@ export function CardGrid({ total, selected, onSelect, locked }: CardGridProps) {
                 aria-hidden="true"
                 className="pointer-events-none absolute -top-2.5 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full border border-gold-300 bg-night-950 px-2 py-0.5 font-display text-[10px] leading-none text-gold-200"
               >
-                {POSITION_BADGES[order]}
+                {/* 고른 순서가 그대로 스프레드 자리가 된다. */}
+                {SPREAD_LABELS[SPREAD_POSITIONS[order]]}
               </span>
             )}
           </li>

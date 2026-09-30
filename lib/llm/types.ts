@@ -13,6 +13,9 @@ export interface ReadingInput {
 }
 
 export interface FollowUpInput extends ReadingInput {
+  /** 앞서 들려준 첫 해석. 대화 턴이 아니라 고정된 맥락으로 넘긴다. */
+  reading: string;
+  /** 후속 대화만 — 사용자 질문으로 시작하고 끝난다. */
   messages: Message[];
 }
 

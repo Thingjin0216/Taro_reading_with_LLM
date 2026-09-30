@@ -1,4 +1,4 @@
-"use client";
+import { ModelText } from "./ModelText";
 
 interface ReadingStreamProps {
   text: string;
@@ -8,20 +8,10 @@ interface ReadingStreamProps {
 }
 
 export function ReadingStream({ text, streaming, error, onRetry }: ReadingStreamProps) {
-  const paragraphs = text.split("\n\n").filter((paragraph) => paragraph.trim().length > 0);
-
   return (
     <div className="space-y-5">
       <div data-testid="reading-text" className="space-y-5 text-[15px] leading-8 text-mist-100">
-        {paragraphs.length === 0 && streaming ? (
-          <p className="caret text-mist-400">카드를 읽는 중</p>
-        ) : (
-          paragraphs.map((paragraph, index) => (
-            <p key={index} className={streaming && index === paragraphs.length - 1 ? "caret" : undefined}>
-              {paragraph}
-            </p>
-          ))
-        )}
+        <ModelText text={text} streaming={streaming} placeholder="카드를 읽는 중" />
       </div>
 
       {error && (

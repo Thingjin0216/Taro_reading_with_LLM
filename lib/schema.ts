@@ -1,13 +1,8 @@
 import { z } from "zod";
+import { MAX_FOLLOW_UP_TURNS, MAX_HISTORY_MESSAGES, MAX_MESSAGE_LENGTH, MAX_QUESTION_LENGTH } from "./constants";
+import type { Message } from "./llm/types";
 import { getCard } from "./tarot/deck";
 import { SPREAD_POSITIONS } from "./tarot/draw";
-import type { Message } from "./llm/types";
-
-export const MAX_QUESTION_LENGTH = 500;
-export const MAX_MESSAGE_LENGTH = 4000;
-/** 한 요청에 실어 보낼 대화 길이 상한 — 토큰이 무한정 늘어나지 않게 자른다. */
-export const MAX_HISTORY_MESSAGES = 12;
-export const MAX_FOLLOW_UP_TURNS = 10;
 
 const drawnCardSchema = z.object({
   id: z.string().refine((id) => getCard(id) !== undefined, { message: "덱에 없는 카드입니다" }),
@@ -34,26 +29,28 @@ export const readingRequestSchema = z.object({
   cards: spreadSchema,
 });
 
-export const messageSchema = z.object({
+const messageSchema = z.object({
   role: z.enum(["user", "assistant"]),
   content: z.string().trim().min(1).max(MAX_MESSAGE_LENGTH),
 });
 
 export const chatRequestSchema = readingRequestSchema.extend({
+  /** 앞서 들려준 첫 해석. 대화 턴이 아니라 따로 받아 고정된 맥락으로 쓴다. */
+  reading: z.string().trim().min(1, "해석이 비어 있습니다").max(MAX_MESSAGE_LENGTH),
+  /** 후속 대화만 — 마지막은 이번에 묻는 질문이다. */
   messages: z
     .array(messageSchema)
     .min(1, "대화 내용이 비어 있습니다")
-    .max(MAX_HISTORY_MESSAGES * 4)
+    .max(MAX_FOLLOW_UP_TURNS * 2)
+    .refine((messages) => messages.at(-1)?.role === "user", { message: "마지막 메시지는 질문이어야 합니다" })
     .refine(
       (messages) => messages.filter((message) => message.role === "user").length <= MAX_FOLLOW_UP_TURNS,
       { message: `후속 질문은 ${MAX_FOLLOW_UP_TURNS}번까지 할 수 있습니다` },
     ),
 });
 
-export type ReadingRequest = z.infer<typeof readingRequestSchema>;
-export type ChatRequest = z.infer<typeof chatRequestSchema>;
-
-/** 오래된 대화는 버리고 최근 것만 남긴다. */
+/** 오래된 대화는 버리고 최근 것만 남긴다. 잘린 자리가 답으로 시작하면 그 답도 버린다. */
 export function trimHistory(messages: Message[]): Message[] {
-  return messages.length <= MAX_HISTORY_MESSAGES ? messages : messages.slice(-MAX_HISTORY_MESSAGES);
+  const recent = messages.slice(-MAX_HISTORY_MESSAGES);
+  return recent[0]?.role === "assistant" ? recent.slice(1) : recent;
 }

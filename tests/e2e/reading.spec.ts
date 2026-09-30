@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { MAX_FOLLOW_UP_TURNS } from "../../lib/constants";
 
 const QUESTION = "이직을 해야 할까?";
 const FOLLOW_UP = "언제 움직이는 게 좋을까요?";
@@ -78,4 +79,28 @@ test("애니메이션을 줄인 환경에서도 같은 흐름이 끝까지 동�
   await pickThreeCards(page);
 
   await expect(page.getByTestId("reading-text")).toContainText(QUESTION, { timeout: 40_000 });
+});
+
+test("후속 질문이 실패하면 빈 말풍선 없이 질문을 입력창에 돌려준다", async ({ page }) => {
+  await page.route("**/api/chat", (route) =>
+    route.fulfill({
+      status: 503,
+      contentType: "application/json",
+      body: JSON.stringify({ error: "잠시 후 다시 시도해 주세요." }),
+    }),
+  );
+
+  await page.goto("/reading");
+  await askQuestion(page, QUESTION);
+  await pickThreeCards(page);
+  await expect(page.getByTestId("reading-text")).toContainText("세 장을 이어 보면", { timeout: 40_000 });
+
+  await page.getByLabel("더 물어보기").fill(FOLLOW_UP);
+  await page.getByRole("button", { name: "보내기" }).click();
+
+  // Next.js가 페이지마다 넣는 경로 안내 요소도 role="alert"라, 오류 문구로 골라 잡는다.
+  await expect(page.getByRole("alert").filter({ hasText: "잠시 후 다시 시도해 주세요." })).toBeVisible();
+  await expect(page.getByTestId("chat")).toHaveCount(0);
+  await expect(page.getByLabel("더 물어보기")).toHaveValue(FOLLOW_UP);
+  await expect(page.getByText(`남은 질문 ${MAX_FOLLOW_UP_TURNS}번`)).toBeVisible();
 });

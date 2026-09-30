@@ -9,6 +9,7 @@
  */
 import { access, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { setTimeout as sleep } from "node:timers/promises";
 import sharp from "sharp";
 import { DECK } from "../lib/tarot/deck";
 import { sourceUrl } from "../lib/tarot/wikimedia";
@@ -33,17 +34,17 @@ async function exists(file: string): Promise<boolean> {
   }
 }
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
 async function download(url: string): Promise<Buffer> {
   let lastError: unknown;
   for (let attempt = 1; attempt <= RETRIES; attempt += 1) {
     try {
       const response = await fetch(url, { headers: { "user-agent": USER_AGENT } });
       if (response.status === 429) {
+        // 서버가 알려 준 만큼만 기다리고 바로 다시 시도한다.
         const retryAfter = Number(response.headers.get("retry-after"));
+        lastError = new Error("HTTP 429");
         await sleep(Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : attempt * 5000);
-        throw new Error("HTTP 429");
+        continue;
       }
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);

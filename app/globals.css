@@ -88,7 +88,7 @@ body::after {
   display: grid;
   place-items: center;
   color: rgba(238, 217, 164, 0.55);
-  font-size: var(--card-glyph, 1.05rem);
+  font-size: 1.05rem;
   line-height: 1;
   text-shadow: 0 0 10px rgba(238, 217, 164, 0.4);
 }

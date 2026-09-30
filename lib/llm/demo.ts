@@ -1,6 +1,6 @@
+import { setTimeout as sleep } from "node:timers/promises";
 import { withParticle } from "../korean";
-import { getCard } from "../tarot/deck";
-import { SPREAD_LABELS, type SpreadPosition } from "../tarot/draw";
+import { describeDrawn, type SpreadPosition } from "../tarot/draw";
 import type { FollowUpInput, ReadingInput, ReadingProvider } from "./types";
 
 /** 실제 스트리밍과 비슷한 리듬을 내려고 조금씩 끊어 보낸다. */
@@ -17,14 +17,9 @@ function readingText({ question, cards }: ReadingInput): string {
   const paragraphs = [`"${question}" — 이 질문을 품고 뽑은 세 장을 함께 봅니다.`];
 
   for (const drawn of cards) {
-    const card = getCard(drawn.id);
-    if (!card) {
-      throw new Error(`덱에 없는 카드입니다: ${drawn.id}`);
-    }
-    const orientation = drawn.reversed ? "역방향" : "정방향";
-    const keywords = drawn.reversed ? card.keywordsReversed : card.keywordsUpright;
+    const { card, positionLabel, orientation, keywords } = describeDrawn(drawn);
     paragraphs.push(
-      `${SPREAD_LABELS[drawn.position]}의 자리에는 ${withParticle(card.nameKo, "이/가")} ${orientation}으로 놓였습니다. ` +
+      `${positionLabel}의 자리에는 ${withParticle(card.nameKo, "이/가")} ${orientation}으로 놓였습니다. ` +
         `${keywords[0]}, ${keywords[1]} 같은 말이 먼저 떠오르는 카드입니다. ` +
         POSITION_NOTE[drawn.position],
     );
@@ -40,10 +35,9 @@ function readingText({ question, cards }: ReadingInput): string {
 }
 
 function followUpText({ question, cards, messages }: FollowUpInput): string {
-  const latest = [...messages].reverse().find((message) => message.role === "user")?.content ?? question;
+  const latest = messages.findLast((message) => message.role === "user")?.content ?? question;
   const present = cards.find((card) => card.position === "present") ?? cards[0];
-  const card = getCard(present.id);
-  const name = card ? card.nameKo : "지금의 카드";
+  const name = describeDrawn(present).card.nameKo;
 
   return (
     `"${latest}" 라고 물으셨군요. 현재 자리의 ${withParticle(name, "을/를")} 다시 들여다봅니다. ` +
@@ -55,7 +49,7 @@ function followUpText({ question, cards, messages }: FollowUpInput): string {
 async function* typeOut(text: string): AsyncIterable<string> {
   for (let index = 0; index < text.length; index += CHUNK_SIZE) {
     yield text.slice(index, index + CHUNK_SIZE);
-    await new Promise((resolve) => setTimeout(resolve, CHUNK_DELAY_MS));
+    await sleep(CHUNK_DELAY_MS);
   }
 }
 

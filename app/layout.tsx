@@ -17,10 +17,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           next/font는 한글 폰트의 유니코드 구간을 수백 개로 나눠 받다 실패한다.
           App Router의 루트 레이아웃이라 이 link는 모든 페이지에 들어가므로
           경고가 경고하는 상황(페이지 하나에만 적용됨)에는 해당하지 않는다.
+          굵기는 400만 쓴다 — 한글 폰트라 굵기 하나마다 첫 화면을 막는 CSS가 크게 늘어난다.
         */}
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
-          href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Gowun+Batang&family=Noto+Sans+KR:wght@400&display=swap"
           rel="stylesheet"
         />
       </head>

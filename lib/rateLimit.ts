@@ -14,31 +14,32 @@ export interface RateLimiter {
   check(key: string): RateLimitResult;
 }
 
-/** 오래된 키가 무한정 쌓이지 않게 가끔 털어낸다. */
-const PRUNE_AT = 5_000;
-
 export function createRateLimiter({ limit, windowMs, now = Date.now }: RateLimiterOptions): RateLimiter {
   const hits = new Map<string, number[]>();
+  let lastPrunedAt = 0;
 
-  function recentHits(key: string, current: number): number[] {
-    return (hits.get(key) ?? []).filter((at) => current - at < windowMs);
+  /**
+   * 오래된 키가 무한정 쌓이지 않게 창 하나가 지날 때마다 한 번만 훑는다.
+   * 요청 시각은 늘 뒤에 붙으므로 마지막 값만 보면 그 키가 아직 살아 있는지 안다.
+   */
+  function prune(current: number) {
+    if (current - lastPrunedAt < windowMs) {
+      return;
+    }
+    lastPrunedAt = current;
+    for (const [key, times] of hits) {
+      if (current - times[times.length - 1] >= windowMs) {
+        hits.delete(key);
+      }
+    }
   }
 
   return {
     check(key) {
       const current = now();
+      prune(current);
 
-      if (hits.size > PRUNE_AT) {
-        for (const [existing, times] of hits) {
-          if (recentHits(existing, current).length === 0) {
-            hits.delete(existing);
-          } else {
-            hits.set(existing, times.filter((at) => current - at < windowMs));
-          }
-        }
-      }
-
-      const recent = recentHits(key, current);
+      const recent = (hits.get(key) ?? []).filter((at) => current - at < windowMs);
       if (recent.length >= limit) {
         hits.set(key, recent);
         const waitMs = windowMs - (current - recent[0]);

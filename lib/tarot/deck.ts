@@ -174,3 +174,12 @@ const BY_ID = new Map(DECK.map((card) => [card.id, card]));
 export function getCard(id: string): TarotCard | undefined {
   return BY_ID.get(id);
 }
+
+/** 서버가 검증을 마친 뒤처럼, 카드가 반드시 있어야 하는 자리에서 쓴다. */
+export function requireCard(id: string): TarotCard {
+  const card = BY_ID.get(id);
+  if (!card) {
+    throw new Error(`덱에 없는 카드입니다: ${id}`);
+  }
+  return card;
+}

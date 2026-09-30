@@ -1,4 +1,4 @@
-import { getCard, type MinorSuit } from "./deck";
+import { requireCard, type MinorSuit } from "./deck";
 
 /**
  * 카드 이미지는 위키미디어 공용(Wikimedia Commons)의 라이더-웨이트-스미스 1909년판에서 받는다.
@@ -20,10 +20,7 @@ const SUIT_PREFIX: Record<MinorSuit, string> = {
 };
 
 export function sourceFileName(cardId: string): string {
-  const card = getCard(cardId);
-  if (!card) {
-    throw new Error(`덱에 없는 카드입니다: ${cardId}`);
-  }
+  const card = requireCard(cardId);
   if (card.arcana === "major") {
     return `RWS_Tarot_${MAJOR_TITLES[card.number]}.jpg`;
   }

@@ -1,8 +1,40 @@
+import type { ZodType } from "zod";
 import { READING_MODE_HEADER } from "./constants";
 import type { ProviderMode } from "./llm/types";
+import { apiLimiter, clientKey, type RateLimiter } from "./rateLimit";
 
-export function jsonError(message: string, status: number, headers?: HeadersInit): Response {
+function jsonError(message: string, status: number, headers?: HeadersInit): Response {
   return Response.json({ error: message }, { status, headers });
+}
+
+/**
+ * 두 API 라우트가 함께 거치는 관문 — 레이트 리밋, JSON 파싱, 스키마 검증.
+ * 통과하면 검증된 값을, 막히면 그대로 돌려줄 오류 응답을 준다.
+ */
+export async function parseRequest<T>(
+  request: Request,
+  schema: ZodType<T>,
+  limiter: RateLimiter = apiLimiter,
+): Promise<T | Response> {
+  const limit = limiter.check(clientKey(request));
+  if (!limit.allowed) {
+    return jsonError(`요청이 조금 빨랐습니다. ${limit.retryAfterSeconds}초 뒤에 다시 시도해 주세요.`, 429, {
+      "retry-after": String(limit.retryAfterSeconds),
+    });
+  }
+
+  let payload: unknown;
+  try {
+    payload = await request.json();
+  } catch {
+    return jsonError("요청을 읽을 수 없습니다.", 400);
+  }
+
+  const parsed = schema.safeParse(payload);
+  if (!parsed.success) {
+    return jsonError(parsed.error.issues[0]?.message ?? "요청이 올바르지 않습니다.", 400);
+  }
+  return parsed.data;
 }
 
 /**

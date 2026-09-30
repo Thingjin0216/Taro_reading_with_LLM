@@ -1,4 +1,4 @@
-import { DECK, type TarotCard } from "./deck";
+import { DECK, requireCard, type TarotCard } from "./deck";
 
 /** 0 이상 1 미만의 난수를 내놓는 함수. 테스트에서는 결정적인 값을 주입한다. */
 export type Rng = () => number;
@@ -20,6 +20,21 @@ export interface DrawnCard {
   id: string;
   reversed: boolean;
   position: SpreadPosition;
+}
+
+export function orientationLabel(reversed: boolean): string {
+  return reversed ? "역방향" : "정방향";
+}
+
+/** 뽑힌 카드를 해석에 필요한 말로 풀어 둔다. 프롬프트와 데모 대역이 함께 쓴다. */
+export function describeDrawn(drawn: DrawnCard) {
+  const card = requireCard(drawn.id);
+  return {
+    card,
+    positionLabel: SPREAD_LABELS[drawn.position],
+    orientation: orientationLabel(drawn.reversed),
+    keywords: drawn.reversed ? card.keywordsReversed : card.keywordsUpright,
+  };
 }
 
 /** mulberry32 — 시드를 주면 같은 순서를 재현하므로 테스트에 쓴다. */

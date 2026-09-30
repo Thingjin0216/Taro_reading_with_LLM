@@ -1,12 +1,7 @@
 import { describe, expect, it } from "vitest";
-import {
-  MAX_FOLLOW_UP_TURNS,
-  MAX_HISTORY_MESSAGES,
-  MAX_QUESTION_LENGTH,
-  chatRequestSchema,
-  readingRequestSchema,
-  trimHistory,
-} from "./schema";
+import { MAX_FOLLOW_UP_TURNS, MAX_HISTORY_MESSAGES, MAX_QUESTION_LENGTH } from "./constants";
+import type { Message } from "./llm/types";
+import { chatRequestSchema, readingRequestSchema, trimHistory } from "./schema";
 
 const validCards = [
   { id: "major-00", reversed: false, position: "past" },
@@ -51,17 +46,29 @@ describe("readingRequestSchema", () => {
 });
 
 describe("chatRequestSchema", () => {
-  const messages = [
-    { role: "assistant", content: "세 장을 함께 보면…" },
-    { role: "user", content: "지금 옮기는 게 나을까요?" },
-  ];
+  const validChat = {
+    ...validReading,
+    reading: "세 장을 함께 보면…",
+    messages: [{ role: "user", content: "지금 옮기는 게 나을까요?" }],
+  };
 
-  it("accepts a reading plus its conversation so far", () => {
-    expect(chatRequestSchema.safeParse({ ...validReading, messages }).success).toBe(true);
+  it("accepts a reading, its interpretation and the follow-up so far", () => {
+    expect(chatRequestSchema.safeParse(validChat).success).toBe(true);
+  });
+
+  it("requires the interpretation the follow-up is about", () => {
+    const withoutReading = { ...validReading, messages: validChat.messages };
+    expect(chatRequestSchema.safeParse(withoutReading).success).toBe(false);
+    expect(chatRequestSchema.safeParse({ ...validChat, reading: "   " }).success).toBe(false);
   });
 
   it("rejects an empty conversation", () => {
-    expect(chatRequestSchema.safeParse({ ...validReading, messages: [] }).success).toBe(false);
+    expect(chatRequestSchema.safeParse({ ...validChat, messages: [] }).success).toBe(false);
+  });
+
+  it("rejects a conversation that does not end with the user's question", () => {
+    const messages = [...validChat.messages, { role: "assistant", content: "현재 자리의 절제가 말해 주듯…" }];
+    expect(chatRequestSchema.safeParse({ ...validChat, messages }).success).toBe(false);
   });
 
   it("rejects more follow-up turns than allowed", () => {
@@ -69,23 +76,33 @@ describe("chatRequestSchema", () => {
       role: "user" as const,
       content: "하나 더 물어볼게요",
     }));
-    expect(chatRequestSchema.safeParse({ ...validReading, messages: tooMany }).success).toBe(false);
+    expect(chatRequestSchema.safeParse({ ...validChat, messages: tooMany }).success).toBe(false);
   });
 });
 
+/** user로 시작해 번갈아 오가는 대화. 마지막이 user가 되도록 길이를 홀수로 준다. */
+function conversation(length: number): Message[] {
+  return Array.from({ length }, (_, index) => ({
+    role: index % 2 === 0 ? "user" : "assistant",
+    content: `메시지 ${index}`,
+  }));
+}
+
 describe("trimHistory", () => {
   it("keeps only the most recent messages", () => {
-    const messages = Array.from({ length: MAX_HISTORY_MESSAGES + 5 }, (_, i) => ({
-      role: "user" as const,
-      content: `메시지 ${i}`,
-    }));
+    const messages = conversation(MAX_HISTORY_MESSAGES + 5);
     const trimmed = trimHistory(messages);
-    expect(trimmed).toHaveLength(MAX_HISTORY_MESSAGES);
-    expect(trimmed.at(-1)?.content).toBe(`메시지 ${messages.length - 1}`);
+    expect(trimmed.length).toBeLessThanOrEqual(MAX_HISTORY_MESSAGES);
+    expect(trimmed.at(-1)).toEqual(messages.at(-1));
+  });
+
+  it("never starts with an answer whose question was cut off", () => {
+    const trimmed = trimHistory(conversation(MAX_HISTORY_MESSAGES + 1));
+    expect(trimmed[0].role).toBe("user");
   });
 
   it("leaves a short conversation untouched", () => {
-    const messages = [{ role: "user" as const, content: "안녕" }];
+    const messages = conversation(3);
     expect(trimHistory(messages)).toEqual(messages);
   });
 });
