@@ -2,6 +2,7 @@
   "name": "taro",
   "version": "0.1.0",
   "private": true,
+  "license": "Apache-2.0",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -10,7 +11,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "fetch:cards": "tsx scripts/fetch-cards.ts"
+    "fetch:cards": "tsx scripts/fetch-cards.ts",
+    "setup:exaone": "bash scripts/setup-exaone-env.sh",
+    "serve:exaone": "bash scripts/serve-exaone.sh"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.0",
